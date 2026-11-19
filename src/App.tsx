@@ -9,7 +9,7 @@ export default function App(){
   return <div className="app-shell">
     <div className="mobile-toolbar"><button aria-label="Open navigation" onClick={()=>setMobileOpen(v=>!v)}>☰</button><strong>ARM64 RE TOOLKIT</strong></div>
     <aside className={`sidebar ${mobileOpen?'open':''}`}>
-      <div className="brand"><div className="brand-name">RE TOOLKIT</div><p>ARM64 + UnityFramework workbench</p><div className="mode-note">REACT ANALYSIS · V2</div></div>
+      <div className="brand"><div className="brand-name">RE TOOLKIT</div><p>ARM64 + UnityFramework workbench</p><div className="mode-note">REACT ANALYSIS · V3</div></div>
       <div className="nav-group">WORKSPACE</div><button className={`nav-entry ${page==='explain'?'selected':''}`} onClick={()=>{setPage('explain');setMobileOpen(false);}}><span>›_</span> Explain / Native React</button>
       <div className="nav-group">TOOLS</div><button className={`nav-entry ${page==='legacy'?'selected':''}`} onClick={()=>{setPage('legacy');setMobileOpen(false);}}><span>◇</span> Complete Legacy Toolkit</button>
       <div className="sidebar-bottom">Offline-first · No external analysis requests<br/>Other tools remain available in Legacy.</div>
