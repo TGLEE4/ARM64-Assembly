@@ -1,0 +1,13 @@
+/* Phase 6: compact relationship graph, matching the established amber/teal toolkit palette. */
+.relation-panel{min-width:0}
+.relation-list{display:flex;flex-direction:column;gap:9px;margin-top:14px}
+.relation-item{background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--teal);border-radius:4px;padding:11px 12px;scroll-margin:20px}
+.relation-item.boundary{border-left-color:var(--amber)}
+.relation-item:focus{outline:2px solid var(--amber);outline-offset:2px}
+.relation-meta{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;color:var(--faint);font-size:10px;margin-bottom:7px}
+.relation-item strong{color:var(--text);font:600 12px system-ui,sans-serif}
+.relation-item p{color:var(--dim);font:11px/1.7 system-ui,sans-serif;margin:7px 0 0}
+.relation-sources{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px;color:var(--faint);font-size:10px}
+.relation-sources button{font:11px ui-monospace,monospace;color:var(--teal);padding:5px 8px;background:var(--panel-alt);border:1px solid var(--border);border-radius:4px;cursor:pointer}
+.relation-sources button:hover,.relation-sources button:focus-visible{border-color:var(--teal)}
+.relation-item .relation-detail{color:var(--amber);font-size:10px}

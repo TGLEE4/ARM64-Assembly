@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { inspectToken, memoryParts, mnemonicInfo, parseInstructions, roleOfOperand, workedExample, type OperandPart, type ParsedInstruction } from '../analysis/explainEngine';
 import { analyzeValueFlow, type FlowEntry } from '../analysis/valueFlow';
 import { guideInstruction } from '../analysis/instructionGuide';
+import { analyzeRelationships } from '../analysis/relationships';
+import '../styles/relationships.css';
 
 type Topic = 'mnemonic'|'operands'|'effects'|'example'|'deep';
 const topicList: {id:Topic;label:string}[] = [
@@ -63,11 +65,12 @@ export default function Explain(){
   const [error,setError]=useState('');
   const picked=useMemo(()=>analyzed.filter(x=>selected.includes(x.id)),[analyzed,selected]);
   const valueFlow=useMemo(()=>analyzeValueFlow(analyzed),[analyzed]);
+  const relationships=useMemo(()=>analyzeRelationships(analyzed),[analyzed]);
   function parse(show=false){const lines=parseInstructions(input);if(!lines.length){setError('Enter one or more ARM64 assembly instructions.');return;}if(lines.length>100){setError('Use no more than 100 instructions per analysis.');return;}setError('');setAnalyzed(lines);setSelected(lines.map(x=>x.id));setShown(show);setInspected(null);}
   function reset(text:string){setInput(text);setAnalyzed([]);setSelected([]);setShown(false);setError('');setInspected(null);}
   function toggle(id:number){setSelected(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);setShown(false);}
   return <div className="explain-page">
-    <header className="panel-head"><div className="heading-kicker">ANALYSIS / ARM64</div><h1>Selective ARM64 Explainer <span className="phase-tag">V4</span></h1><p>Understand the command, each operand, and how values relate. Click any highlighted part for a deeper explanation. Unknown runtime facts are never invented.</p></header>
+    <header className="panel-head"><div className="heading-kicker">ANALYSIS / ARM64</div><h1>Selective ARM64 Explainer <span className="phase-tag">V6</span></h1><p>Understand the command, each operand, and how values relate. Click any highlighted part for a deeper explanation. Unknown runtime facts are never invented.</p></header>
     <div className="workspace-grid"><div className="workspace-primary">
       <section className="tool-card"><div className="card-heading"><h2>Instruction input</h2><span className="small-label">ARM64 ASM · OFFLINE</span></div>
         <label htmlFor="explain-input">Paste ARM64 assembly · one instruction per line</label><textarea id="explain-input" value={input} onChange={e=>setInput(e.target.value)} rows={6} spellCheck={false}/>
@@ -80,6 +83,18 @@ export default function Explain(){
       </section><section className="tool-card compact-card"><div className="card-heading"><h2>Explanation depth</h2><span className="small-label">OPTIONAL TOPICS</span></div><div className="topic-choices">{topicList.map(topic=><label key={topic.id} className="topic-choice"><input type="checkbox" checked={topics.includes(topic.id)} onChange={()=>{setTopics(prev=>prev.includes(topic.id)?prev.filter(x=>x!==topic.id):[...prev,topic.id]);setShown(false);}}/><span>{topic.label}</span></label>)}</div><div className="action-row"><button className="action primary" disabled={!selected.length||!topics.length} onClick={()=>setShown(true)}>Explain selected</button></div></section></>}
       {shown&&<section className="results" aria-live="polite"><div className="results-heading"><h2>Instruction explanations</h2><span className="small-label">{picked.length} SELECTED</span></div>{picked.map(inst=><InstructionCard key={inst.id} inst={inst} topics={topics} onInspect={setInspected} flow={valueFlow.entries}/>)}</section>}
     </div><div className="workspace-aside"><Inspector item={inspected} onClose={()=>setInspected(null)}/>
+      <section className="inspector-card relation-panel"><div className="card-heading"><h2>Instruction relationships</h2><span className="small-label">STATIC · STRAIGHT-LINE</span></div>
+        {analyzed.length===0?<p className="inspect-placeholder">Analyze ARM64 instructions to see how values move between lines, which comparison sets the flags, and what a branch checks.</p>:<>
+          <p className="footnote">Each linked line is a dependency from the supplied text—not a verified runtime trace. Click a dependency to jump to that instruction.</p>
+          <div className="relation-list">{relationships.items.map(item=><div className={`relation-item ${item.status}`} key={item.line} id={`relation-line-${item.line}`} tabIndex={-1}>
+            <div className="relation-meta"><span>LINE {item.line+1} · {item.mnemonic}</span><span>{item.status.toUpperCase()}</span></div>
+            <strong>{item.title}</strong><p>{item.explanation}</p>
+            {item.sources.length>0&&<div className="relation-sources"><span>Depends on</span>{item.sources.map(source=><button type="button" key={source} onClick={()=>{const target=document.getElementById(`relation-line-${source}`);target?.scrollIntoView({behavior:'smooth',block:'center'});target?.focus();}}>{`Line ${source+1}`}</button>)}</div>}
+            {item.detail&&<p className="relation-detail">{item.detail}</p>}
+          </div>)}</div>
+          {relationships.stoppedAt!==null&&<p className="notice">Stopped at line {relationships.stoppedAt+1}. The analyzer does not assume instructions after a branch or unsupported operation execute.</p>}
+        </>}
+      </section>
       <section className="inspector-card"><div className="card-heading"><h2>Value flow</h2><span className="small-label">LIMITED · STATIC</span></div>
         {analyzed.length===0?<p className="inspect-placeholder">Analyze instructions to see register dependencies and what can be established from the supplied sequence.</p>:<>
           <p className="footnote">Tracks simple MOV, ADD, SUB, LDR and CMP patterns until a branch, return, call, or unsupported operation. This is not a CPU emulator.</p>
