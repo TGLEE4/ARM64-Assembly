@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react';
 import { inspectToken, memoryParts, mnemonicInfo, parseInstructions, roleOfOperand, workedExample, type OperandPart, type ParsedInstruction } from '../analysis/explainEngine';
 import { analyzeValueFlow, type FlowEntry } from '../analysis/valueFlow';
+import { guideInstruction } from '../analysis/instructionGuide';
 
-type Topic = 'mnemonic'|'operands'|'effects'|'example';
+type Topic = 'mnemonic'|'operands'|'effects'|'example'|'deep';
 const topicList: {id:Topic;label:string}[] = [
   {id:'mnemonic',label:'Mnemonic meaning'},
   {id:'operands',label:'Operands and roles'},
   {id:'effects',label:'CPU effects and limitations'},
   {id:'example',label:'Execution walkthrough'},
+  {id:'deep',label:'CPU steps / pseudocode'},
 ];
 const sample='LDR W8, [X19, #0x200]\nCMP W8, #0\nB.EQ target\nMOV W0, #1\nRET';
 const arithmetic='MOV W0, #4\nADD W1, W0, #8\nCMP W1, #12\nB.EQ done';
@@ -22,6 +24,7 @@ function Inspector({item,onClose}:{item:OperandPart|null;onClose:()=>void}){
 }
 function InstructionCard({inst,topics,onInspect,flow}:{inst:ParsedInstruction;topics:Topic[];onInspect:(item:OperandPart)=>void;flow?:FlowEntry[]}){
   const mnemonic=mnemonicInfo(inst.mnemonic);
+  const guide=guideInstruction(inst);
   const available=flow?.filter(entry=>entry.line===inst.id) ?? [];
   return <article className="instruction-result">
     <div className="instruction-top"><span className="instruction-code">{inst.raw}</span><span className="small-label">LINE {inst.id+1}</span></div>
@@ -45,6 +48,7 @@ function InstructionCard({inst,topics,onInspect,flow}:{inst:ParsedInstruction;to
         <div className="effects-registers"><span>Registers mentioned:</span>{registerMentions(inst.raw).length?registerMentions(inst.raw).map(reg=><button key={reg} className="operand-chip" onClick={()=>onInspect(inspectToken(reg,'Register referenced in this instruction'))}>{reg}</button>):<span className="small-label">None explicitly</span>}</div>
       </section>}
       {topics.includes('example')&&<section className="topic"><h3>Execution walkthrough</h3><pre className="steps">{workedExample(inst)}</pre></section>}
+      {topics.includes('deep')&&<section className="topic"><h3>CPU execution — step by step <span className="precision">EVIDENCE-BASED</span></h3><p className="strong-line">{guide.heading}</p><ol className="guide-steps">{guide.steps.map((step,i)=><li key={i}>{step}</li>)}</ol><h4 className="guide-subheading">Pseudocode</h4><pre className="steps">{guide.pseudocode}</pre><div className="guide-effects"><span>Reads: {guide.reads.join(', ')||'none identified'}</span><span>Writes: {guide.writes.join(', ')||'none identified'}</span></div><p className="guide-certainty">{guide.certainty}</p>{guide.warning&&<p className="notice">{guide.warning}</p>}</section>}
       {available.map((entry,i)=><div className={`flow-inline ${entry.status}`} key={i}><strong>{entry.heading}</strong><p>{entry.description}</p>{entry.register&&<div className="flow-transition"><code>{entry.register}</code><span>{entry.before}</span><span>→</span><span>{entry.after}</span></div>}</div>)}
     </>}
   </article>;
@@ -53,7 +57,7 @@ export default function Explain(){
   const [input,setInput]=useState(sample);
   const [analyzed,setAnalyzed]=useState<ParsedInstruction[]>([]);
   const [selected,setSelected]=useState<number[]>([]);
-  const [topics,setTopics]=useState<Topic[]>(['mnemonic','operands','effects','example']);
+  const [topics,setTopics]=useState<Topic[]>(['mnemonic','operands','effects','example','deep']);
   const [shown,setShown]=useState(false);
   const [inspected,setInspected]=useState<OperandPart|null>(null);
   const [error,setError]=useState('');
@@ -63,7 +67,7 @@ export default function Explain(){
   function reset(text:string){setInput(text);setAnalyzed([]);setSelected([]);setShown(false);setError('');setInspected(null);}
   function toggle(id:number){setSelected(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);setShown(false);}
   return <div className="explain-page">
-    <header className="panel-head"><div className="heading-kicker">ANALYSIS / ARM64</div><h1>Selective ARM64 Explainer <span className="phase-tag">V3</span></h1><p>Understand the command, each operand, and how values relate. Click any highlighted part for a deeper explanation. Unknown runtime facts are never invented.</p></header>
+    <header className="panel-head"><div className="heading-kicker">ANALYSIS / ARM64</div><h1>Selective ARM64 Explainer <span className="phase-tag">V4</span></h1><p>Understand the command, each operand, and how values relate. Click any highlighted part for a deeper explanation. Unknown runtime facts are never invented.</p></header>
     <div className="workspace-grid"><div className="workspace-primary">
       <section className="tool-card"><div className="card-heading"><h2>Instruction input</h2><span className="small-label">ARM64 ASM · OFFLINE</span></div>
         <label htmlFor="explain-input">Paste ARM64 assembly · one instruction per line</label><textarea id="explain-input" value={input} onChange={e=>setInput(e.target.value)} rows={6} spellCheck={false}/>
