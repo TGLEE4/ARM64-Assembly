@@ -45,3 +45,63 @@
 .guide-effects{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .guide-effects span{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:7px 10px;color:var(--teal);font-size:11px}
 .topic p.guide-certainty{color:var(--amber);background:var(--bg);border-left:3px solid var(--amber);padding:10px 12px}
+
+/* Phase 4 UI fix: one sidebar at a time, responsive native collapse, full-width content. */
+.brand-title-row{display:flex;gap:9px;align-items:flex-start;min-width:0}
+.brand-text{min-width:0;flex:1}
+.toolkit-icon{width:26px;height:23px;object-fit:contain;flex-shrink:0;image-rendering:auto}
+.native-collapse-button{width:26px;height:27px;flex-shrink:0;border:1px solid var(--border);background:var(--panel-alt);color:var(--text);border-radius:4px;cursor:pointer}
+.native-collapse-button:hover{border-color:var(--amber);color:var(--amber)}
+.sidebar{transition:width .18s ease}
+.native-sidebar-collapsed .sidebar{width:66px}
+.native-sidebar-collapsed .brand{padding:16px 12px}
+.native-sidebar-collapsed .brand-title-row{flex-direction:column;align-items:center;gap:12px}
+.native-sidebar-collapsed .brand-text,.native-sidebar-collapsed .mode-note,.native-sidebar-collapsed .nav-group,.native-sidebar-collapsed .nav-text,.native-sidebar-collapsed .sidebar-bottom{display:none}
+.native-sidebar-collapsed .nav-entry{justify-content:center;padding:14px 0}
+.native-sidebar-collapsed .nav-entry span:first-child{width:auto}
+.app-shell .main-content{min-width:0;flex:1;width:0;max-width:none}
+.legacy-page .main-content{width:100%;padding:0}
+.legacy-message{display:flex;align-items:center;gap:10px}
+.legacy-message .toolkit-icon{width:18px;height:16px}
+.legacy-container iframe{min-width:0}
+@media(max-width:760px){
+  .native-collapse-button{display:none}
+  .native-sidebar-collapsed .sidebar{width:260px}
+  .native-sidebar-collapsed .brand{padding:22px 18px}
+  .native-sidebar-collapsed .brand-title-row{flex-direction:row;align-items:flex-start}
+  .native-sidebar-collapsed .brand-text,.native-sidebar-collapsed .mode-note,.native-sidebar-collapsed .nav-group,.native-sidebar-collapsed .nav-text,.native-sidebar-collapsed .sidebar-bottom{display:initial}
+  .native-sidebar-collapsed .nav-group{display:block}
+  .native-sidebar-collapsed .nav-entry{justify-content:flex-start;padding:13px 16px}
+  .native-sidebar-collapsed .sidebar-bottom{display:block}
+  .native-sidebar-collapsed .nav-entry span:first-child{width:20px}
+  .app-shell .main-content{width:100%}
+  .mobile-toolbar .toolkit-icon{width:22px;height:20px}
+}
+
+
+/* Icon refinement — square terminal symbol in the original slate/amber/teal theme. */
+.toolkit-icon{display:block;box-sizing:border-box;width:34px;height:34px;object-fit:contain;flex-shrink:0}
+.brand-title-row{align-items:center;gap:10px}
+.brand-name{white-space:nowrap;font-size:13px;letter-spacing:.2px}
+.brand p{margin:4px 0 0;font-size:9px;line-height:1.4}
+.brand{padding:18px 12px 16px}
+.brand-text{flex:1;min-width:0}
+.native-collapse-button{width:26px;height:28px;align-self:center}
+/* The previous generic span selector made navigation text 20px wide. */
+.nav-entry{gap:10px;cursor:pointer}
+.nav-entry > span:first-child{width:18px;flex:0 0 18px;text-align:center}
+.nav-entry > .nav-text{display:block;width:auto;min-width:0;flex:1;line-height:1.35;overflow-wrap:normal;word-break:normal;font-family:system-ui,sans-serif;font-size:12px}
+.native-sidebar-collapsed .nav-entry > .nav-text{display:none}
+.native-sidebar-collapsed .brand-title-row{flex-direction:column;gap:9px;align-items:center}
+.native-sidebar-collapsed .brand{padding:16px 8px}
+.native-sidebar-collapsed .toolkit-icon{width:34px;height:34px}
+.native-sidebar-collapsed .nav-entry > span:first-child{flex:0 0 auto;width:auto}
+.legacy-message{min-height:42px;justify-content:flex-start}
+.mobile-toolbar .toolkit-icon{width:28px;height:28px}
+@media(max-width:760px){
+  .brand{padding:18px 12px 16px}
+  .native-sidebar-collapsed .brand{padding:18px 12px 16px}
+  .native-sidebar-collapsed .brand-title-row{flex-direction:row;align-items:center}
+  .native-sidebar-collapsed .nav-entry > .nav-text{display:block}
+  .native-sidebar-collapsed .nav-entry > span:first-child{width:18px;flex:0 0 18px}
+}

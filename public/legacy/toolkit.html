@@ -514,6 +514,20 @@
   .operand-detail strong{color:var(--accent-2)}
   .operand-parts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .operand-parts button{font-size:11px}
+
+  /* Embedded legacy tool: collapse the single remaining sidebar and grow the workspace. */
+  #desktop-sidebar-collapse{position:fixed;z-index:1100;top:12px;left:185px;width:34px;height:30px;background:var(--panel-alt);color:var(--text);border:1px solid var(--border);border-radius:4px;font:700 16px var(--mono);cursor:pointer;transition:left .18s ease}
+  #desktop-sidebar-collapse:hover{border-color:var(--accent);color:var(--accent)}
+  #sidebar{transition:width .18s ease}
+  body.legacy-sidebar-collapsed #sidebar{width:0;min-width:0;border:0;overflow:hidden}
+  body.legacy-sidebar-collapsed #desktop-sidebar-collapse{left:12px}
+  #main{max-width:none;width:0;flex:1}
+  body.legacy-sidebar-collapsed #main{width:100%;padding-left:58px}
+  @media(max-width:820px){
+    #desktop-sidebar-collapse{display:none}
+    #main,body.legacy-sidebar-collapsed #main{width:100%;padding:16px 14px 50px}
+    body.legacy-sidebar-collapsed #sidebar{width:270px;overflow-y:auto}
+  }
 </style>
 </head>
 <body>
@@ -524,6 +538,7 @@
   <div id="mobile-project">No project</div>
 </div>
 
+<button id="desktop-sidebar-collapse" type="button" aria-label="Collapse navigation sidebar" title="Collapse navigation sidebar" aria-expanded="true">«</button>
 <div id="sidebar">
   <div id="brand">
     <div class="title">RE TOOLKIT</div>
@@ -1269,6 +1284,28 @@ document.querySelectorAll('[data-go]').forEach(el=>el.addEventListener('click',(
 }));
 const menuToggle=document.getElementById('menu-toggle');
 if(menuToggle) menuToggle.addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
+
+/* Desktop sidebar: persist collapse state; leave the existing mobile drawer alone. */
+(function(){
+  const button=document.getElementById('desktop-sidebar-collapse');
+  const KEY='arm64-legacy-sidebar-collapsed';
+  if(!button) return;
+  function update(collapsed){
+    document.body.classList.toggle('legacy-sidebar-collapsed',collapsed);
+    button.textContent=collapsed?'»':'«';
+    button.setAttribute('aria-label',collapsed?'Expand navigation sidebar':'Collapse navigation sidebar');
+    button.setAttribute('title',collapsed?'Expand navigation sidebar':'Collapse navigation sidebar');
+    button.setAttribute('aria-expanded',String(!collapsed));
+  }
+  let initial=false;
+  try{initial=localStorage.getItem(KEY)==='true';}catch(e){}
+  update(initial);
+  button.addEventListener('click',()=>{
+    const collapsed=!document.body.classList.contains('legacy-sidebar-collapsed');
+    update(collapsed);
+    try{localStorage.setItem(KEY,String(collapsed));}catch(e){}
+  });
+})();
 
 /* ============================= BEGINNER / FULL MODE ============================= */
 (function(){
