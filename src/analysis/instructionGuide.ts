@@ -1,10 +1,11 @@
+import { parseImmediate } from './numeric';
 import type { ParsedInstruction } from './explainEngine';
 
 export type Guide = { heading:string; steps:string[]; pseudocode:string; reads:string[]; writes:string[]; certainty:string; warning?:string };
 const number = /^#([+-]?(?:0x[0-9a-f]+|\d+))$/i;
 function decimal(source:string):string|null{
   const match=source.trim().match(number);if(!match)return null;
-  try {const raw=match[1];const neg=raw.startsWith('-');const plain=raw.replace(/^[+-]/,'');const val=BigInt(plain);return (neg?-val:val).toString();}catch{return null;}
+  const value = parseImmediate(match[1]); return value === null ? null : value.toString();
 }
 function memory(token:string):{base:string;offset:string;kind:'offset'|'pre'|'post'}|null{
   const match=token.trim().match(/^\[\s*([XW](?:[0-9]|[12][0-9]|30)|SP)\s*(?:,\s*(#[+-]?(?:0x[0-9a-f]+|\d+)))?\s*\](!)?$/i);
@@ -35,6 +36,33 @@ export function guideInstruction(inst:ParsedInstruction):Guide{
   }
   if((op==='MOV'||op==='MOVZ')&&a.length>=2){
     return simple('Copy / construct a value',[`Identify the destination ${a[0]}.`,`Read the source ${showImmediate(a[1])}.`,op==='MOVZ'?'Place the 16-bit immediate into the selected halfword and clear all other bits (if no shift, the low halfword).':`Write the source value to ${a[0]}; the source is not erased.`,/^W(?:\d+|ZR)$/i.test(a[0])?'Writing a W register zeroes the upper half of the corresponding X register.':'Other general-purpose registers are unchanged.'],`${a[0]} = ${a[1]}`,[a[1]],[a[0]],'A copied immediate is a known constant; a copied register requires an earlier value.');
+  }
+  if((op==='MOVZ'||op==='MOVK')&&a.length>=2){
+    const shift=a[2]??'LSL #0';
+    return simple(op==='MOVZ'?'Create a register constant':'Replace part of a register',
+      [`Read the 16-bit immediate ${showImmediate(a[1])}.`,
+       `Position that immediate according to ${shift}.`,
+       op==='MOVZ'?'Clear all other destination bits to zero.':'Keep all destination bits outside the selected 16-bit section.',
+       `Write the constructed value to ${a[0]}.`],
+      op==='MOVZ'?`${a[0]} = unsigned16(${a[1]}) shifted by ${shift}`:`${a[0]} = replace_16_bits(${a[0]}, ${a[1]}, ${shift})`,
+      op==='MOVZ'?[a[1]]:[a[0],a[1]],[a[0]],
+      op==='MOVK'?'The untouched bits require the prior destination value; do not invent them.':'Exact value requires a valid immediate and shift.');
+  }
+  if(['AND','ORR','EOR','BIC','LSL','LSR','ASR','MUL'].includes(op)&&a.length>=3){
+    const operations:Record<string,string>={AND:'bitwise AND',ORR:'bitwise OR',EOR:'bitwise XOR',BIC:'bitwise AND with an inverted second source',LSL:'shift bits left',LSR:'shift bits right with zero fill',ASR:'shift bits right retaining the sign',MUL:'multiply'};
+    return simple('Bit manipulation / arithmetic',[
+      `Read the first input ${a[1]}.`, `Read the second input or shift amount ${showImmediate(a[2])}.`,
+      `Apply ${operations[op]} at the destination width.`, `Write the result to ${a[0]}; NZCV flags are not modified by this mnemonic.`],
+      `${a[0]} = ${op}(${a[1]}, ${a[2]})`,[a[1],a[2]],[a[0]],
+      'The operation is architecturally defined; the result needs known input values and a valid operand form.');
+  }
+  if(op==='CSEL'&&a.length>=4){
+    return simple('Select based on condition',[
+      `Read NZCV condition flags and test ${a[3]}.`,
+      `If ${a[3]} is satisfied, select ${a[1]}; otherwise select ${a[2]}.`,
+      `Write the chosen value to ${a[0]}; leave flags unchanged.`],
+      `${a[0]} = condition(${a[3]}) ? ${a[1]} : ${a[2]}`,[a[1],a[2],'NZCV'],[a[0]],
+      'Only the selected source is written; the condition outcome depends on earlier flag-setting instructions.');
   }
   if(['ADD','SUB','ADDS','SUBS'].includes(op)&&a.length>=3){
     const subtract=op.startsWith('SUB'),setsFlags=op.endsWith('S');

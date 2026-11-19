@@ -1,3 +1,4 @@
+import { parseImmediate } from './numeric';
 export type ParsedInstruction = { id: number; raw: string; mnemonic: string; operands: string[]; error?: string };
 export type OperandPart = { text: string; kind: string; detail: string };
 export type MnemonicExplanation = { name: string; title: string; plain: string; technical: string; effect: string; example: string };
@@ -73,6 +74,20 @@ export function mnemonicInfo(op: string): MnemonicExplanation | null {
   const d = dictionary[name];
   if (d) return { name, ...d };
   if (/^B\.(EQ|NE|CS|CC|HS|LO|MI|PL|VS|VC|HI|LS|GE|LT|GT|LE)$/.test(name)) return {name,title:'Conditional Branch',plain:'Jump when the named condition is satisfied.',technical:'Reads the NZCV flags set by an earlier instruction.',effect:'May change control flow; does not update NZCV.',example:`${name} target → jump if the ${name.slice(2)} condition holds.`};
+  const extra: Record<string, Omit<MnemonicExplanation,'name'>> = {
+    LSL:{title:'Logical Shift Left',plain:'Move bits toward higher positions and fill low positions with zero.',technical:'For the common register alias, shifts the source by an immediate amount, keeping the destination width.',effect:'Writes destination; flags unchanged.',example:'LSL W0, W1, #2 → multiply low 32-bit pattern by four, discarding overflow.'},
+    UBFM:{title:'Unsigned Bitfield Move',plain:'Select and position bits from a register.',technical:'ARM64 bitfield operation with immr and imms encoding; behavior depends on both immediate fields.',effect:'Writes destination; flags unchanged.',example:'UBFM W0, W1, #8, #15 → extract a bitfield under the encoded mask.'},
+    SBFM:{title:'Signed Bitfield Move',plain:'Extract or reposition bits and extend a selected sign bit.',technical:'Bitfield operation with sign replication according to immr and imms.',effect:'Writes destination; flags unchanged.',example:'SBFM X0, X1, #0, #7 → sign-extend the low byte.'},
+    BIC:{title:'Bit Clear',plain:'Keep bits from the first source wherever the second source has a zero.',technical:'Bitwise AND with inverted second source.',effect:'Writes destination; does not update NZCV.',example:'BIC W0, W1, W2 → W0 = W1 & ~W2.'},
+    MVN:{title:'Move Not',plain:'Copy the bitwise inverse of the source.',technical:'Alias of ORN with the zero register.',effect:'Writes destination; flags unchanged.',example:'MVN W0, W1 → W0 = ~W1.'},
+    NEG:{title:'Negate',plain:'Change the sign of a number using two’s-complement arithmetic.',technical:'Alias of SUB with the zero register as first input.',effect:'Writes destination; flags unchanged.',example:'NEG W0, W1 → W0 = 0 - W1.'},
+    CSEL:{title:'Conditional Select',plain:'Pick one of two register values based on the current condition flags.',technical:'Destination receives source 1 when condition true, otherwise source 2.',effect:'Writes destination; reads NZCV; flags unchanged.',example:'CSEL W0, W1, W2, EQ → choose W1 if equal, otherwise W2.'},
+    CSET:{title:'Conditional Set',plain:'Put 1 or 0 into a register based on a condition.',technical:'Alias of CSINC using two zero registers and an inverted condition.',effect:'Writes destination; flags unchanged.',example:'CSET W0, EQ → W0 = 1 if Z=1, else 0.'},
+    LDRSB:{title:'Load Register Signed Byte',plain:'Read one byte from memory and sign-extend it.',technical:'Loads an 8-bit signed value to a 32- or 64-bit destination.',effect:'Reads one byte; writes destination; does not update NZCV.',example:'LDRSB X0, [X1] → load signed byte into 64-bit X0.'},
+    LDRSH:{title:'Load Register Signed Halfword',plain:'Read two bytes and sign-extend to the destination width.',technical:'Loads signed 16-bit value to a 32- or 64-bit destination.',effect:'Reads two bytes; writes destination.',example:'LDRSH W0, [X1] → load signed 16-bit value into W0.'},
+    LDRSW:{title:'Load Register Signed Word',plain:'Read four bytes and sign-extend to 64 bits.',technical:'Loads signed 32-bit word into an X register.',effect:'Reads four bytes; writes 64-bit destination.',example:'LDRSW X0, [X1] → sign-extend the loaded word.'},
+  };
+  if(extra[name]) return {name,...extra[name]};
   if (/^(LDR|LDUR)(B|H|SB|SH|SW)?$/.test(name)) return {name,title:'Load from Memory',plain:'Read memory into a register.',technical:'Transfer size and sign-extension depend on the instruction suffix.',effect:'Reads memory and changes a destination register.',example:`${name} W0, [X1] → read from memory according to the specified width.`};
   if (/^(STR|STUR)(B|H)?$/.test(name)) return {name,title:'Store to Memory',plain:'Write register data into memory.',technical:'Transfer size depends on the instruction suffix.',effect:'Writes memory.',example:`${name} W0, [X1] → write data to memory.`};
   return null;
@@ -95,7 +110,7 @@ export function roleOfOperand(inst: ParsedInstruction, index: number): string {
 }
 
 function integerInfo(raw: string): string | null {
-  try { const n = BigInt(raw.replace(/^#/, '')); const sign = n < 0n ? '-' : ''; const abs = n < 0n ? -n : n; return `${n.toString(10)} decimal (${sign}0x${abs.toString(16).toUpperCase()} hexadecimal)`; } catch { return null; }
+  try { const n = parseImmediate(raw); if (n === null) return null; const sign = n < 0n ? '-' : ''; const abs = n < 0n ? -n : n; return `${n.toString(10)} decimal (${sign}0x${abs.toString(16).toUpperCase()} hexadecimal)`; } catch { return null; }
 }
 export function inspectToken(token: string, role = 'Operand'): OperandPart {
   const text = token.trim(), upper = text.toUpperCase();
