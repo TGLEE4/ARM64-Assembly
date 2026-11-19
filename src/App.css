@@ -36,3 +36,12 @@
 @media(max-width:1150px){.workspace-grid{grid-template-columns:minmax(0,1fr) minmax(270px,.75fr);gap:12px}.main-content{padding:22px}}
 @media(max-width:900px){.workspace-grid{grid-template-columns:1fr}.workspace-aside{position:static;max-height:none;overflow:visible}.main-content{padding:20px}}
 @media(max-width:760px){.main-content{padding:16px}.topic-choices{grid-template-columns:1fr}.compact-card .topic-choices{grid-template-columns:1fr}}
+
+/* Phase 4: CPU execution walkthrough */
+.guide-steps{margin:12px 0 16px;padding-left:24px;color:var(--dim);font:12px/1.9 system-ui,sans-serif}
+.guide-steps li{padding:3px 0 3px 5px}
+.guide-steps li::marker{color:var(--amber);font-weight:700}
+.guide-subheading{font:600 11px system-ui,sans-serif;color:var(--text);margin:16px 0 8px}
+.guide-effects{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.guide-effects span{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:7px 10px;color:var(--teal);font-size:11px}
+.topic p.guide-certainty{color:var(--amber);background:var(--bg);border-left:3px solid var(--amber);padding:10px 12px}
